@@ -7,7 +7,7 @@ COPY package.json package-lock.json* ./
 # Development stage
 FROM base AS development
 ENV NODE_ENV=development
-RUN npm ci
+RUN npm install
 COPY . .
 EXPOSE 3000
 CMD ["npm", "run", "start:dev"]

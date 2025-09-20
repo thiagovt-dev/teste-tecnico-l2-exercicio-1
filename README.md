@@ -1,98 +1,188 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# API de Empacotamento Inteligente
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Sistema de empacotamento desenvolvido como solução para o Exercício 1 do teste técnico para a vaga de Desenvolvedor Node.js Pleno na L2 Code.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Visão Geral
 
-## Description
+A API recebe pedidos com produtos e retorna a distribuição dos itens nas caixas disponíveis.  
+O algoritmo usado é **heurístico, determinístico e explicável** — adequado para um problema de empacotamento (NP-difícil) em contexto de teste prático.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### Heurística (o que exatamente fazemos)
 
-## Project setup
+- **Shelf 1D por caixa (sem rotação de grupo)**: escolhe-se **um eixo** da caixa para **somar** os comprimentos dos itens; nos outros dois eixos usa-se o **máximo** entre os itens.  
+- **Eixo “congelado” por caixa**: ao abrir a caixa com o 1º item, definimos o eixo de soma e mantemos o mesmo eixo para os próximos itens daquela caixa.  
+- **Rotação permitida apenas no teste individual** de “cabe na caixa”: ordenamos os lados do item e comparamos com os da caixa (não rotacionamos o **grupo**).  
+- **Política de item grande (configurável)**: se existir item “grande” na caixa, limitamos o **nº total de itens** nessa caixa para evitar superlotação irrealista.
 
-```bash
-$ npm install
+> Objetivo prático: **minimizar nº de caixas** com um layout consistente e verificável, não perseguir a solução ótima 3D.
+
+## Arquitetura
+
+**Clean Architecture** com responsabilidades bem separadas:
+
+- **Domain**: entidades e regras puras (`Dimensions`, `Product`, `Box`, `Order`, portas/contratos).
+- **Application**: casos de uso (`PackOrderUseCase`).
+- **Infrastructure**: adapters/repos, controllers e injeção de dependências (NestJS).
+- **Policies**: parâmetros de empacotamento via DI.
+
+Estrutura (resumo):
+```
+src/
+├── modules/
+│   ├── packaging/
+│   │   ├── domain/
+│   │   ├── application/
+│   │   └── infrastructure/
+│   │       ├── adapters/
+│   │       │   └── in-memory-packaging.repository.ts
+│   │       └── policies/
+│   │           ├── packing-policy.ts
+│   │           └── packing-policy.factory.ts
+│   └── shared/ ...
+└── main.ts / app.module.ts
 ```
 
-## Compile and run the project
+## Tecnologias
+
+- **NestJS** (Node.js)
+- **TypeScript**
+- **Swagger/OpenAPI**
+- **Jest**
+- **Docker** (opcional)
+
+## Pré-requisitos
+
+- Node.js 20+
+- npm ou yarn
+- Docker (opcional)
+
+## Instalação e Execução
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone <repository-url>
+cd teste-tecnico-l2-exercicio-1
+npm install
+cp .env.example .env
 ```
 
-## Run tests
+Execute:
 
 ```bash
-# unit tests
-$ npm run test
+# Dev (hot reload)
+npm run start:dev
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Prod
+npm run build
+npm start
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Docker
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker compose up
+# ou
+NODE_ENV=production docker compose up --build
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Configuração por Ambiente (.env)
 
-## Resources
+Parâmetros da política de empacotamento (via DI):
 
-Check out a few resources that may come in handy when working with NestJS:
+```env
+PACK_BIG_H=40              # altura a partir da qual o item é "grande"
+PACK_BIG_W=50              # largura a partir da qual o item é "grande"
+PACK_MAX_ITEMS_WITH_BIG=2  # se houver item grande na caixa, máx. total de itens nessa caixa
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Wire no módulo (exemplo):
 
-## Support
+```ts
+// providers:
+{ provide: PACKING_POLICY, inject: [ConfigService], useFactory: packingPolicyFactory },
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Ou valor fixo (sem @nestjs/config):
 
-## Stay in touch
+```ts
+{ provide: PACKING_POLICY, useValue: { bigH: 40, bigW: 50, maxWithBig: 2 } }
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Documentação da API
 
-## License
+Swagger em `/docs`.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### Endpoint
+
+**POST** `/pack`  
+Processa a solicitação e retorna a distribuição de produtos em caixas.
+
+**Exemplo de entrada** (trecho):
+```json
+{
+  "pedidos": [
+    {
+      "pedido_id": 1,
+      "produtos": [
+        { "produto_id": "PS5", "dimensoes": { "altura": 40, "largura": 10, "comprimento": 25 } },
+        { "produto_id": "Volante", "dimensoes": { "altura": 40, "largura": 30, "comprimento": 30 } }
+      ]
+    }
+  ]
+}
+```
+
+**Exemplo de resposta** (trecho):
+```json
+{
+  "pedidos": [
+    {
+      "pedido_id": 1,
+      "caixas": [
+        { "caixa_id": "Caixa 2", "produtos": ["PS5", "Volante"] }
+      ]
+    }
+  ]
+}
+```
+
+> **Observação importante**: o enunciado fornece **exemplos** de entrada/saída.  
+> Esta solução **não garante igualdade textual** com o exemplo quando houver **múltiplos arranjos válidos**; garante, porém, que:
+> 1) cada item só é alocado se **couber nas três dimensões** da caixa;  
+> 2) as caixas são usadas de forma **determinística** e **consistente**;  
+> 3) buscamos **minimizar o nº de caixas** segundo a heurística descrita;  
+> 4) ao abrir caixa, a escolha favorece a **menor caixa** possível que comporte o item inicial no eixo escolhido.
+
+## Testes
+
+- Rodar: `npm test`  
+- Validações principais:
+  - Todos os produtos do pedido aparecem **exatamente uma vez** no resultado (ou são marcados como não alocáveis).
+  - Nenhum grupo de itens dentro de uma caixa viola as **restrições de dimensão**.
+  - O número de caixas é **compatível** com a heurística (minimizado dentro das regras).
+
+## Decisões de Projeto
+
+- **Por que heurística?** Empacotamento 3D é **NP-difícil**; heurísticas permitem resultados rápidos, determinísticos e testáveis.
+- **Shelf 1D + eixo congelado:** simplifica a verificação de “caber junto” e produz layouts consistentes.
+- **Item grande (política configurável):** aproxima o comportamento de cenários reais, evitando “encaixes improváveis”.
+- **DI para políticas:** facilita ajustar comportamento por ambiente sem tocar na implementação.
+
+## Limitações Conhecidas
+
+- Não otimiza arranjos 3D complexos; é uma aproximação **pragmática**.  
+- Pode haver mais de um arranjo válido com o mesmo nº de caixas; a resposta pode diferir do **exemplo ilustrativo** do enunciado, mantendo as garantias acima.
+
+## Referências
+
+- `references/entrada.json` — payload completo de entrada (exemplo).
+- `references/saida.json` — exemplo de saída **ilustrativo** do enunciado.
+
+## Desenvolvedor
+
+**Thiago Vasconcelos Teixeira**  
+Full-Stack Developer — Imperatriz, MA, Brasil  
+GitHub: https://github.com/thiagovt-dev
+
+## Licença
+
+Projeto desenvolvido como parte de um teste técnico e não possui licença comercial.
